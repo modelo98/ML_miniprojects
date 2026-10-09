@@ -1,0 +1,330 @@
+\documentclass[10pt,twocolumn,a4paper]{article}
+
+% -------------------------------------------------
+% Idioma y codificación
+% -------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[english]{babel}
+
+% -------------------------------------------------
+% Formato del documento
+% -------------------------------------------------
+\usepackage[
+    top=1.8cm,
+    bottom=1.8cm,
+    left=1.8cm,
+    right=1.8cm,
+    columnsep=0.7cm
+]{geometry}
+
+\usepackage{microtype}
+\usepackage{parskip}
+
+% -------------------------------------------------
+% Matemáticas
+% -------------------------------------------------
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+
+% -------------------------------------------------
+% Figuras y tablas
+% -------------------------------------------------
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+
+% -------------------------------------------------
+% Enlaces y referencias
+% -------------------------------------------------
+\usepackage[hidelinks]{hyperref}
+
+% Carpeta de imágenes
+\graphicspath{{images/}}
+
+% -------------------------------------------------
+% Información del documento
+% -------------------------------------------------
+\title{
+    \textbf{Angular Goal Analysis\\
+    and\\
+    Robot Heading Error}
+}
+
+\author{
+    Julio Quejido Barrera\\
+    Humanoide Robotik\\
+    Julio's Laboratories
+}
+
+\date{\today}
+
+% =================================================
+\begin{document}
+% =================================================
+
+\maketitle
+
+\begin{abstract}
+This project extends the geometric goal analysis developed 
+in the previous projects by introducing an angular representation 
+of the relative orientation between a mobile robot and multiple goals. 
+For each candidate goal, the absolute direction of the corresponding 
+robot-to-goal vector is calculated using the two-argument arctangent 
+function $\operatorname{atan2}$. The difference between this goal angle 
+and the robot orientation produces an angular error. Because angular 
+quantities are periodic, the raw error is normalized to obtain the 
+shortest signed rotational difference within the interval $[-\pi,\pi)$. 
+The sign of the normalized angular error is then used to determine 
+whether the robot should rotate left, rotate right, or continue moving 
+straight.
+\end{abstract}
+
+\section{Introduction}
+
+A mobile robot may operate in an environment containing 
+several possible target positions. In this situation, 
+selecting a goal cannot depend only on the distance 
+between the robot and each candidate. The robot must 
+also consider its current orientation, because a nearby 
+goal located behind the robot may be less relevant than 
+a goal positioned within its forward field.
+
+This project introduces a robot heading vector and uses 
+it to evaluate the relative position of multiple candidate 
+goals. Each goal is processed individually, classified 
+according to its position with respect to the robot heading, 
+and tested using a visibility condition.
+
+The geometric operations developed in Project 1 are reused 
+to obtain the distance and normalized direction associated 
+with each candidate goal. The new contribution of this project 
+is therefore the combination of robot orientation, scalar-product 
+analysis, spatial classification and visibility filtering.
+
+\section{Theoretical Background}
+
+\subsection{Angular Representation of a Vector}
+
+For goal $i$, let $\mathbf{v}_{RG_i}$ denote the robot-to-goal vector. A two-dimensional direction vector can also be represented by an angle measured from the positive global $x$-axis. The absolute angle toward goal $i$ is
+
+\begin{equation}
+    \theta_{G_i} = \operatorname{atan2}(v_{y_i}, v_{x_i}).
+    \label{eq:goal_angle}
+\end{equation}
+
+The value $\theta_{G_i}$ describes the orientation of the robot-to-goal vector in the global coordinate system.
+
+The two-argument arctangent is preferred over
+
+\begin{equation}
+    \arctan\left(\frac{v_{y_i}}{v_{x_i}}\right)
+\end{equation}
+
+because the one-argument expression cannot uniquely determine the 
+quadrant of the vector and becomes undefined when $v_{x_i}=0$. 
+In contrast, $\operatorname{atan2}$ considers the signs of both 
+vector components and returns the correct angular quadrant.
+
+
+\begin{table}[htbp]
+\centering
+\caption{Comparison Between $\arctan(y/x)$ and $\text{atan2}(y, x)$.}
+\label{tab:atan2_comparison}
+\small % Reduces font size slightly to guarantee it fits the column width
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Vec.} $(x, y)$ & \textbf{Quad.} & $\arctan(y/x)$ & $\text{atan2}(y, x)$ & \textbf{Correct} \\
+\midrule
+$(3, 3)$   & I   & $45^{\circ}$ & $45^{\circ}$   & Yes \\
+$(-3, -3)$ & III & $45^{\circ}$ & $-135^{\circ}$ & No \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Absolute Goal Angle and Robot Orientation}
+
+The robot orientation is represented by $\theta_R$, while 
+the absolute direction toward goal $i$ is represented by $\theta_{G_i}$. 
+Both angles are measured from the same positive global $x$-axis. 
+The robot orientation describes the direction in which the robot is currently 
+facing, whereas the goal angle describes the global direction from 
+the robot position toward the selected target. These quantities 
+are absolute angles. The goal angle alone does not indicate how much 
+the robot must rotate, because the current robot orientation must also 
+be considered. A relative angular difference must therefore be calculated.
+
+\subsection{Angular Error}
+
+The raw angular error for goal $i$ is
+
+\begin{equation}
+    e_{\theta_i} = \theta_{G_i} - \theta_R.
+    \label{eq:raw_angular_error}
+\end{equation}
+
+This value represents the signed rotational difference between the current robot orientation and the direction toward the goal.
+
+Before normalization,
+
+\[
+    e_{\theta_i} > 0
+\]
+
+indicates a counterclockwise angular difference, while
+
+\[
+    e_{\theta_i} < 0
+\]
+
+indicates a clockwise angular difference. When
+
+\[
+    e_{\theta_i} = 0,
+\]
+
+the robot orientation is aligned with the goal direction.
+
+The magnitude
+
+\[
+    \left|e_{\theta_i}\right|
+\]
+
+indicates the size of the angular difference. However, direct angle 
+subtraction does not always provide the shortest physical rotation 
+because angular quantities are periodic.
+
+\subsection{Periodicity of Angles}
+
+Angular quantities repeat after every complete revolution. Therefore,
+
+\[
+    \theta = \theta + 2k\pi,
+    \qquad
+    k \in \mathbb{Z}.
+\]
+
+Angles that differ by an integer multiple of $2\pi$ represent the same 
+physical orientation.
+
+For example, consider
+
+\[
+    \theta_R = -179^\circ
+\]
+
+and
+
+\[
+    \theta_G = 179^\circ.
+\]
+
+Direct subtraction produces
+
+\[
+    e_\theta
+    =
+    179^\circ - \left(-179^\circ\right)
+    =
+    358^\circ.
+\]
+
+However, the shortest rotation from the robot orientation to the goal 
+direction is
+
+\[
+    -2^\circ.
+\]
+
+The large raw error appears because the two angles lie on opposite sides 
+of the $-\pi/\pi$ boundary. This discontinuity shows that direct 
+subtraction alone is not sufficient for obtaining the shortest rotational 
+difference.
+
+\subsection{Angular Error Normalization}
+
+Because angular quantities are periodic, the raw angular error may not 
+represent the shortest physical rotation between the robot orientation 
+and the goal direction. The project therefore normalizes the error using
+
+\begin{equation}
+    e_{\theta_i}^{\mathrm{norm}}
+    =
+    \left(e_{\theta_i} + \pi\right)
+    \bmod \left(2\pi\right)
+    - \pi.
+    \label{eq:normalized_angular_error}
+\end{equation}
+
+This operation maps any angular error to the interval
+
+\[
+    -\pi \leq e_{\theta_i}^{\mathrm{norm}} < \pi.
+\]
+
+The normalized value represents the shortest signed angular difference 
+between the current robot orientation and the direction toward goal $i$.
+
+When
+
+\[
+    e_{\theta_i}^{\mathrm{norm}} \approx 0,
+\]
+
+the robot is approximately aligned with the goal direction.
+
+When
+
+\[
+    \left|e_{\theta_i}^{\mathrm{norm}}\right| \approx \pi,
+\]
+
+the goal direction is approximately opposite to the robot orientation. 
+Because the normalization interval is $[-\pi,\pi)$, an angular difference 
+of exactly $\pi$ is represented as $-\pi$.
+
+Small positive or negative values indicate that only a small rotation is 
+required. The sign determines the direction of the shortest rotation, 
+while the magnitude indicates its size. This normalization is essential 
+in robotics because orientation variables wrap around after every 
+complete revolution.
+
+\subsection{Rotation Direction Decision}
+
+The normalized angular error is converted into a simple motion decision:
+
+\[
+\begin{aligned}
+    e_{\theta_i}^{\mathrm{norm}} < 0
+    &\quad \Rightarrow \quad
+    \text{turn right}, \\
+    e_{\theta_i}^{\mathrm{norm}} = 0
+    &\quad \Rightarrow \quad
+    \text{go straight}, \\
+    e_{\theta_i}^{\mathrm{norm}} > 0
+    &\quad \Rightarrow \quad
+    \text{turn left}.
+\end{aligned}
+\]
+
+The sign determines the shortest rotation direction, while the magnitude 
+indicates how large the required rotation is.
+
+\section{Project Task}
+
+Define one robot position, a robot orientation angle, and several 
+candidate goal positions as NumPy arrays. For every goal, compute the 
+absolute direction using $\operatorname{atan2}$, calculate the angular 
+error between the goal direction and the robot orientation, and normalize 
+the error to the interval $[-\pi,\pi)$. Convert the angular values to 
+degrees for interpretation and use the sign of the normalized error to 
+determine whether the robot should turn left, turn right, or continue 
+straight.
+
+
+% =================================================
+\end{document}
+% =================================================
