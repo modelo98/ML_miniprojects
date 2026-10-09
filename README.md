@@ -54,6 +54,9 @@ Robotica/
 ├── requirements.txt
 └── README.md
 ```
+## Paper Folders
+
+Some project folders include a `paper/` directory containing the LaTeX files, figures, and material used to create the final PDF. The experiments and mini-projects are explained mathematically in the final document, so for reading purposes it is only necessary to open **<u>`main.pdf`</u>** inside each `paper/` folder.
 
 ## Main Topics Covered
 
