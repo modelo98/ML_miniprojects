@@ -49,7 +49,7 @@ Robotica/
 │   ├── __init__.py
 │   └── math_utils.py
 │
-├── notes/
+|
 │
 ├── requirements.txt
 └── README.md
